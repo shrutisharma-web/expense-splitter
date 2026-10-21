@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cute Expense Splitter</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #eef2f7, #dde5f0);
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .card {
+      background: white;
+      width: 360px;
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+      text-align: center;
+    }
+
+    h1 { margin: 0 0 5px; font-size: 24px; color: #1e3a5f; }
+    h3 { margin: 22px 0 8px; font-size: 15px; color: #1e3a5f; text-align: left; }
+    p.sub { margin: 0 0 15px; color: #888; font-size: 13px; }
+
+    label { display: block; text-align: left; font-size: 13px; color: #555; margin: 10px 0 4px; }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #cfd8e3;
+      border-radius: 12px;
+      font-size: 15px;
+      box-sizing: border-box;
+      outline: none;
+      background: white;
+    }
+    input:focus, select:focus { border-color: #1e3a5f; }
+
+    button {
+      margin-top: 14px;
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 12px;
+      background: #1e3a5f;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:hover { background: #152a46; }
+    button.secondary { background: #5b7290; }
+    button.secondary:hover { background: #46597a; }
+
+    /* Small "chips" for each friend */
+    #peopleList { text-align: left; margin-top: 10px; }
+    .chip {
+      display: inline-block;
+      background: #e6edf6;
+      color: #445;
+      padding: 5px 10px;
+      border-radius: 20px;
+      margin: 3px 3px 0 0;
+      font-size: 14px;
+    }
+    .chip span { cursor: pointer; color: #1e3a5f; margin-left: 5px; }
+
+    /* Expense list */
+    #list { list-style: none; padding: 0; margin: 0; text-align: left; }
+    #list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f4f6fa;
+      padding: 8px 12px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #444;
+    }
+    #list small { color: #888; }
+    #list .del {
+      background: none;
+      color: #1e3a5f;
+      width: auto;
+      margin: 0 0 0 8px;
+      padding: 0 4px;
+      font-size: 16px;
+    }
+    .empty { color: #aaa; font-size: 13px; text-align: left; margin: 0; }
+
+    #result {
+      margin-top: 18px;
+      padding: 15px;
+      background: #f4f6fa;
+      border-radius: 14px;
+      font-size: 14px;
+      color: #444;
+      text-align: left;
+      display: none;
+    }
+    .big { font-size: 26px; color: #1e3a5f; font-weight: bold; }
+    .pay {
+      background: white;
+      padding: 8px 10px;
+      border-radius: 10px;
+      margin-top: 6px;
+    }
+
+    /* Past records */
+    hr { border: none; border-top: 2px solid #e6edf6; margin: 28px 0 0; }
+    .record {
+      text-align: left;
+      background: #f4f6fa;
+      border-left: 5px solid #1e3a5f;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 12px;
+      font-size: 14px;
+      color: #444;
+    }
+    .record h4 { margin: 0; font-size: 17px; color: #1e3a5f; }
+    .record .date { color: #888; font-size: 12px; margin-bottom: 8px; }
+    .record .row { display: flex; justify-content: space-between; padding: 3px 0; }
+    .record .row small { color: #888; }
+    .record .total { margin-top: 8px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>💸 Expense Splitter</h1>
+    <p class="sub">Who paid, how much, all in one place</p>
+
+    <!-- STEP 1: Place visited -->
+    <h3>1. Where did you go? 📍</h3>
+    <input type="text" id="placeName" placeholder="Place visited (e.g. Goa Trip)">
+
+    <!-- STEP 2: Add friends -->
+    <h3>2. Who's in the group? 👯</h3>
+    <input type="text" id="personName" placeholder="Enter a name (e.g. Shruti)">
+    <button onclick="addPerson()">+ Add Friend</button>
+    <div id="peopleList"></div>
+
+    <!-- STEP 3: Add an expense -->
+    <h3>3. Where was the money spent?</h3>
+
+    <label>What was bought? (name)</label>
+    <input type="text" id="itemName" placeholder="e.g. Pizza">
+
+    <label>How much? (₹)</label>
+    <input type="number" id="itemAmount" placeholder="e.g. 450">
+
+    <label>Category</label>
+    <select id="itemCategory">
+      <option>🍕 Food</option>
+      <option>🚕 Travel</option>
+      <option>🎬 Movie</option>
+      <option>🛍️ Shopping</option>
+      <option>✨ Other</option>
+    </select>
+
+    <label>Who paid? 💳</label>
+    <select id="itemPaidBy"></select>
+
+    <button onclick="addExpense()">+ Add Expense</button>
+
+    <!-- STEP 4: Show the list -->
+    <h3>4. Expenses so far</h3>
+    <ul id="list"></ul>
+
+    <!-- STEP 5: Calculate and save -->
+    <h3>5. Settle up</h3>
+
+    <label>Tip % (optional)</label>
+    <input type="number" id="tip" value="0" min="0">
+
+    <button onclick="calculate()">Calculate</button>
+    <button class="secondary" onclick="saveTrip()">💾 Save Trip to Records</button>
+
+    <div id="result"></div>
+
+    <!-- PAST RECORDS -->
+    <hr>
+    <h3>📒 Past Records</h3>
+    <div id="records"></div>
+  </div>
+
+  <script>
+    // Two arrays for the current trip: friends and expenses
+    let people = [];    // e.g. ["Shruti", "Riya", "Aman"]
+    let expenses = [];  // e.g. { name, amount, category, paidBy }
+
+    // All saved trips (loaded from the browser's storage)
+    let records = loadRecords();
+
+    // ---------- STORAGE (saves data inside your browser) ----------
+    function loadRecords() {
+      try {
+        return JSON.parse(localStorage.getItem("expenseRecords")) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRecords() {
+      try {
+        localStorage.setItem("expenseRecords", JSON.stringify(records));
+      } catch (e) {
+        alert("Could not save records in this browser.");
+      }
+    }
+
+    // Makes user-typed text safe to show on the page
+    function safe(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    // ---------- FRIENDS ----------
+    function addPerson() {
+      const input = document.getElementById("personName");
+      const name = input.value.trim();
+
+      if (name === "") {
+        alert("Please enter a name 🙈");
+        return;
+      }
+      if (people.includes(name)) {
+        alert("This name is already added!");
+        return;
+      }
+
+      people.push(name);
+      input.value = "";
+      showPeople();
+    }
+
+    function removePerson(index) {
+      const name = people[index];
+
+      // If this friend has paid for an expense, don't allow deleting them
+      for (let i = 0; i < expenses.length; i++) {
+        if (expenses[i].paidBy === name) {
+          alert(name + " has paid for an expense. Please delete that expense first 🙈");
+          return;
+        }
+      }
+
+      people.splice(index, 1);
+      showPeople();
+    }
+
+    function showPeople() {
+      const box = document.getElementById("peopleList");
+      const select = document.getElementById("itemPaidBy");
+      box.innerHTML = "";
+      select.innerHTML = "";
+
+      if (people.length === 0) {
+        box.innerHTML = "<p class='empty'>No friends added yet 🌸</p>";
+      }
+
+      for (let i = 0; i < people.length; i++) {
+        box.innerHTML +=
+          "<div class='chip'>" + safe(people[i]) +
+          "<span onclick='removePerson(" + i + ")'>✖</span></div>";
+        select.innerHTML += "<option>" + safe(people[i]) + "</option>";
+      }
+    }
+
+    // ---------- EXPENSES ----------
+    function addExpense() {
+      const name = document.getElementById("itemName").value.trim();
+      const amount = Number(document.getElementById("itemAmount").value);
+      const category = document.getElementById("itemCategory").value;
+      const paidBy = document.getElementById("itemPaidBy").value;
+
+      if (people.length < 2) {
+        alert("Please add at least 2 friends first 🙈");
+        return;
+      }
+      if (name === "" || amount <= 0) {
+        alert("Please enter a name and a valid amount 🙈");
+        return;
+      }
+
+      expenses.push({ name: name, amount: amount, category: category, paidBy: paidBy });
+
+      document.getElementById("itemName").value = "";
+      document.getElementById("itemAmount").value = "";
+      showList();
+    }
+
+    function deleteExpense(index) {
+      expenses.splice(index, 1);
+      showList();
+    }
+
+    function showList() {
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      if (expenses.length === 0) {
+        list.innerHTML = "<p class='empty'>No expenses yet 🌸</p>";
+        return;
+      }
+
+      for (let i = 0; i < expenses.length; i++) {
+        const e = expenses[i];
+        list.innerHTML +=
+          "<li><span>" + e.category + " " + safe(e.name) +
+          "<br><small>paid by " + safe(e.paidBy) + "</small></span>" +
+          "<span>₹" + e.amount +
+          "<button class='del' onclick='deleteExpense(" + i + ")'>✖</button></span></li>";
+      }
+    }
+
+    // ---------- CALCULATION ----------
+    // Does all the maths and returns the answer as one object
+    function computeSummary(tip) {
+      // Tip multiplier: 10% tip => 1.10
+      const multiplier = 1 + tip / 100;
+
+      // 1. How much has each person paid so far?
+      const paid = {};
+      for (let i = 0; i < people.length; i++) {
+        paid[people[i]] = 0;
+      }
+
+      let bill = 0;
+      const byCategory = {};
+
+      for (let i = 0; i < expenses.length; i++) {
+        const e = expenses[i];
+        paid[e.paidBy] += e.amount * multiplier;
+        bill += e.amount;
+
+        if (byCategory[e.category] === undefined) {
+          byCategory[e.category] = 0;
+        }
+        byCategory[e.category] += e.amount;
+      }
+
+      // 2. Total, and everyone's equal share
+      const total = bill * multiplier;
+      const share = total / people.length;
+
+      // 3. Balance = amount paid - amount they should have paid
+      //    Positive => they get money back, Negative => they owe money
+      const creditors = [];
+      const debtors = [];
+
+      for (let i = 0; i < people.length; i++) {
+        const name = people[i];
+        const balance = paid[name] - share;
+
+        if (balance > 0.01) {
+          creditors.push({ name: name, amount: balance });
+        } else if (balance < -0.01) {
+          debtors.push({ name: name, amount: -balance });
+        }
+      }
+
+      // 4. Settlement: debtors pay creditors one by one
+      const transfers = [];
+      let d = 0;
+      let c = 0;
+
+      while (d < debtors.length && c < creditors.length) {
+        const pay = Math.min(debtors[d].amount, creditors[c].amount);
+        transfers.push({ from: debtors[d].name, to: creditors[c].name, amount: pay });
+
+        debtors[d].amount -= pay;
+        creditors[c].amount -= pay;
+
+        if (debtors[d].amount < 0.01) d++;
+        if (creditors[c].amount < 0.01) c++;
+      }
+
+      return {
+        bill: bill,
+        total: total,
+        share: share,
+        paid: paid,
+        byCategory: byCategory,
+        transfers: transfers
+      };
+    }
+
+    // Turns the transfers list into HTML
+    function transfersHtml(transfers) {
+      if (transfers.length === 0) {
+        return "<div class='pay'>Everyone is even, nobody owes anything 🎉</div>";
+      }
+      let html = "";
+      for (let i = 0; i < transfers.length; i++) {
+        const t = transfers[i];
+        html += "<div class='pay'>" + safe(t.from) + " ➜ " + safe(t.to) +
+                ": <b>₹" + t.amount.toFixed(2) + "</b></div>";
+      }
+      return html;
+    }
+
+    // Reads the tip box and makes sure it is not negative
+    function getTip() {
+      const tip = Number(document.getElementById("tip").value);
+      if (tip < 0) {
+        alert("Tip cannot be negative 🙈");
+        document.getElementById("tip").value = 0;
+        return null;
+      }
+      return tip;
+    }
+
+    // Called by the "Calculate" button
+    function calculate() {
+      const tip = getTip();
+      if (tip === null) return;
+      const result = document.getElementById("result");
+      result.style.display = "block";
+
+      if (people.length < 2 || expenses.length === 0) {
+        result.innerHTML = "Please add friends and expenses first 🙈";
+        return;
+      }
+
+      const s = computeSummary(tip);
+
+      let breakdown = "";
+      for (const cat in s.byCategory) {
+        breakdown += cat + ": ₹" + s.byCategory[cat].toFixed(2) + "<br>";
+      }
+
+      let paidText = "";
+      for (let i = 0; i < people.length; i++) {
+        paidText += safe(people[i]) + " paid: ₹" + s.paid[people[i]].toFixed(2) + "<br>";
+      }
+
+      result.innerHTML =
+        "<b>Where the money went:</b><br>" + breakdown + "<br>" +
+        "<b>Who paid how much:</b><br>" + paidText + "<br>" +
+        "Total (with tip): ₹" + s.total.toFixed(2) + "<br>" +
+        "Each person's share: <span class='big'>₹" + s.share.toFixed(2) + "</span><br><br>" +
+        "<b>Who pays whom:</b>" + transfersHtml(s.transfers);
+    }
+
+    // ---------- RECORDS ----------
+    // Called by the "Save Trip to Records" button
+    function saveTrip() {
+      const place = document.getElementById("placeName").value.trim();
+      const tip = getTip();
+      if (tip === null) return;
+
+      if (place === "") {
+        alert("Please enter the place you visited (Step 1) 📍");
+        return;
+      }
+      if (people.length < 2 || expenses.length === 0) {
+        alert("Please add friends and expenses first 🙈");
+        return;
+      }
+
+      const s = computeSummary(tip);
+
+      // Put the newest trip at the start of the list
+      records.unshift({
+        place: place,
+        date: new Date().toLocaleDateString("en-IN"),
+        people: people.slice(),
+        expenses: expenses.slice(),
+        total: s.total,
+        share: s.share,
+        transfers: s.transfers
+      });
+      saveRecords();
+
+      // Clear the current trip (friends stay, so you can start the next trip quickly)
+      expenses = [];
+      document.getElementById("placeName").value = "";
+      document.getElementById("result").style.display = "none";
+      showList();
+      showRecords();
+
+      alert("Trip saved to Past Records ✅");
+    }
+
+    function showRecords() {
+      const box = document.getElementById("records");
+      box.innerHTML = "";
+
+      if (records.length === 0) {
+        box.innerHTML = "<p class='empty'>No saved trips yet 🌸</p>";
+        return;
+      }
+
+      for (let i = 0; i < records.length; i++) {
+        const r = records[i];
+
+        let rows = "";
+        for (let j = 0; j < r.expenses.length; j++) {
+          const e = r.expenses[j];
+          rows +=
+            "<div class='row'><span>" + e.category + " " + safe(e.name) +
+            " <small>(" + safe(e.paidBy) + ")</small></span><span>₹" + e.amount + "</span></div>";
+        }
+
+        box.innerHTML +=
+          "<div class='record'>" +
+            "<h4>📍 " + safe(r.place) + "</h4>" +
+            "<div class='date'>" + r.date + " · " + safe(r.people.join(", ")) + "</div>" +
+            rows +
+            "<div class='total'>Total: ₹" + r.total.toFixed(2) +
+            " · Each: ₹" + r.share.toFixed(2) + "</div>" +
+            transfersHtml(r.transfers) +
+          "</div>";
+      }
+    }
+
+    // Show everything when the page opens
+    showPeople();
+    showList();
+    showRecords();
+  </script>
+
+</body>
+</html>
